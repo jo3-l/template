@@ -248,17 +248,18 @@ func (t *Template) DefinedTemplates() string {
 	return s
 }
 
-type rangeControl int8
+type controlFlowSignal int8
 
 const (
-	rangeNone     rangeControl = iota // no action.
-	rangeBreak                        // break out of range.
-	rangeContinue                     // continues next range iteration.
+	rangeNone     controlFlowSignal = iota // no action.
+	rangeBreak                             // break out of range.
+	rangeContinue                          // continues next range iteration.
+	exitTemplate                           // stops executing current template.
 )
 
 // Walk functions step through the major pieces of the template structure,
 // generating output as they go.
-func (s *state) walk(dot reflect.Value, node parse.Node) rangeControl {
+func (s *state) walk(dot reflect.Value, node parse.Node) controlFlowSignal {
 	s.at(node)
 	switch node := node.(type) {
 	case *parse.ActionNode:
@@ -272,8 +273,8 @@ func (s *state) walk(dot reflect.Value, node parse.Node) rangeControl {
 		return s.walkIfOrWith(parse.NodeIf, dot, node.Pipe, node.List, node.ElseList)
 	case *parse.ListNode:
 		for _, node := range node.Nodes {
-			if c := s.walk(dot, node); c != rangeNone {
-				return c
+			if s := s.walk(dot, node); s != rangeNone {
+				return s
 			}
 		}
 	case *parse.RangeNode:
@@ -286,6 +287,8 @@ func (s *state) walk(dot reflect.Value, node parse.Node) rangeControl {
 		}
 	case *parse.WithNode:
 		return s.walkIfOrWith(parse.NodeWith, dot, node.Pipe, node.List, node.ElseList)
+	case *parse.ExitNode:
+		return exitTemplate
 	case *parse.BreakNode:
 		if s.rangeDepth == 0 {
 			s.errorf("invalid break outside of range")
@@ -304,7 +307,7 @@ func (s *state) walk(dot reflect.Value, node parse.Node) rangeControl {
 
 // walkIfOrWith walks an 'if' or 'with' node. The two control structures
 // are identical in behavior except that 'with' sets dot.
-func (s *state) walkIfOrWith(typ parse.NodeType, dot reflect.Value, pipe *parse.PipeNode, list, elseList *parse.ListNode) rangeControl {
+func (s *state) walkIfOrWith(typ parse.NodeType, dot reflect.Value, pipe *parse.PipeNode, list, elseList *parse.ListNode) controlFlowSignal {
 	defer s.pop(s.mark())
 	val := s.evalPipeline(dot, pipe)
 	truth, ok := isTrue(val)
@@ -358,7 +361,7 @@ func isTrue(val reflect.Value) (truth, ok bool) {
 	return truth, true
 }
 
-func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) rangeControl {
+func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSignal {
 	s.incrOPs(1)
 
 	s.at(r)
@@ -367,7 +370,7 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) rangeControl {
 	// mark top of stack before any variables in the body are pushed.
 	mark := s.mark()
 	s.rangeDepth++
-	oneIteration := func(index, elem reflect.Value) rangeControl {
+	oneIteration := func(index, elem reflect.Value) controlFlowSignal {
 		s.incrOPs(1)
 
 		// Set top var (lexically the second if there are two) to the element.
@@ -378,9 +381,9 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) rangeControl {
 		if len(r.Pipe.Decl) > 1 {
 			s.setTopVar(2, index)
 		}
-		ctrl := s.walk(elem, r.List)
+		signal := s.walk(elem, r.List)
 		s.pop(mark)
-		return ctrl
+		return signal
 	}
 	switch val.Kind() {
 	case reflect.Array, reflect.Slice:
@@ -388,8 +391,11 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) rangeControl {
 			break
 		}
 		for i := 0; i < val.Len(); i++ {
-			if ctrl := oneIteration(reflect.ValueOf(i), val.Index(i)); ctrl == rangeBreak {
+			switch signal := oneIteration(reflect.ValueOf(i), val.Index(i)); signal {
+			case rangeBreak:
 				break
+			case exitTemplate:
+				return exitTemplate
 			}
 		}
 		s.rangeDepth--
@@ -399,8 +405,11 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) rangeControl {
 			break
 		}
 		for _, key := range sortKeys(val.MapKeys()) {
-			if ctrl := oneIteration(key, val.MapIndex(key)); ctrl == rangeBreak {
+			switch signal := oneIteration(key, val.MapIndex(key)); signal {
+			case rangeBreak:
 				break
+			case exitTemplate:
+				return exitTemplate
 			}
 		}
 		s.rangeDepth--
@@ -415,8 +424,11 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) rangeControl {
 			if !ok {
 				break
 			}
-			if ctrl := oneIteration(reflect.ValueOf(i), elem); ctrl == rangeBreak {
+			switch signal := oneIteration(reflect.ValueOf(i), elem); signal {
+			case rangeBreak:
 				break
+			case exitTemplate:
+				return exitTemplate
 			}
 		}
 		if i == 0 {

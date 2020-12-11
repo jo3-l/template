@@ -234,6 +234,7 @@ var parseTests = []parseTest{
 		`{{with .X}}"hello"{{end}}`},
 	{"with with else", "{{with .X}}hello{{else}}goodbye{{end}}", noError,
 		`{{with .X}}"hello"{{else}}"goodbye"{{end}}`},
+	{"exit", "hello{{exit}}", noError, `hello{{exit}}`},
 	// Trimming spaces.
 	{"trim left", "x \r\n\t{{- 3}}", noError, `"x"{{3}}`},
 	{"trim right", "{{3 -}}\n\n\ty", noError, `{{3}}"y"`},
@@ -300,6 +301,7 @@ var parseTests = []parseTest{
 	{"continue outside of range", `{{continue}}`, hasError, ""},
 	{"continue in range else, outside of range", `{{range .}}{{.}}{{else}}{{continue}}{{end}}`, hasError, ""},
 	{"additional break data", `{{range .}}{{break label}}{{end}}`, hasError, ""},
+	{"additional exit data", `{{exit 1}}`, hasError, ""},
 }
 
 var builtins = map[string]interface{}{

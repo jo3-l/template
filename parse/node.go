@@ -71,6 +71,7 @@ const (
 	NodeWith                       // A with action.
 	NodeBreak                      // A break action.
 	NodeContinue                   // A continue action.
+	NodeExit                       // An exit action.
 )
 
 // Nodes.
@@ -798,6 +799,32 @@ func (t *Tree) newRange(pos Pos, line int, pipe *PipeNode, list, elseList *ListN
 
 func (r *RangeNode) Copy() Node {
 	return r.tr.newRange(r.Pos, r.Line, r.Pipe.CopyPipe(), r.List.CopyList(), r.ElseList.CopyList())
+}
+
+// ExitNode represents an {{exit}} action.
+type ExitNode struct {
+	NodeType
+	Pos
+	tr *Tree
+}
+
+func (t *Tree) newExit(pos Pos) *ExitNode {
+	return &ExitNode{NodeType: NodeExit, Pos: pos, tr: t}
+}
+func (e *ExitNode) Type() NodeType {
+	return e.NodeType
+}
+func (e *ExitNode) String() string {
+	return "{{exit}}"
+}
+func (e *ExitNode) Copy() Node {
+	return e.tr.newExit(e.Pos)
+}
+func (e *ExitNode) Position() Pos {
+	return e.Pos
+}
+func (e *ExitNode) tree() *Tree {
+	return e.tr
 }
 
 // BreakNode represents a {{break}} action.

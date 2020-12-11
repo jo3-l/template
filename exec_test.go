@@ -539,6 +539,12 @@ var execTests = []execTest{
 	{"range continue", `{{range .SI}}{{continue}}{{.}}{{end}}`, "", tVal, true},
 	{"range continue condition", `{{range .SI}}{{if eq . 3 }}{{continue}}{{end}}{{.}}{{end}}`, "45", tVal, true},
 
+	// Exit.
+	{"exit top level", `12{{exit}}23`, "12", tVal, true},
+	{"exit in nested template", `{{define "tmpl"}}12{{exit}}34{{end}}{{template "tmpl"}}45`, "1245", tVal, true},
+	{"exit in range", `{{range .SI}}{{exit}}23{{end}}34`, "", tVal, true},
+	{"exit in if", `{{if true}}{{exit}}{{end}}12`, "", tVal, true},
+
 	// Cute examples.
 	{"or as if true", `{{or .SI "slice is empty"}}`, "[3 4 5]", tVal, true},
 	{"or as if false", `{{or .SIEmpty "slice is empty"}}`, "slice is empty", tVal, true},

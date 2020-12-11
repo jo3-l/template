@@ -192,7 +192,7 @@ var lexTests = []lexTest{
 		tRight,
 		tEOF,
 	}},
-	{"keywords", "{{range if else end with break continue}}", []item{
+	{"keywords", "{{range if else end with break continue exit}}", []item{
 		tLeft,
 		mkItem(itemRange, "range"),
 		tSpace,
@@ -207,6 +207,8 @@ var lexTests = []lexTest{
 		mkItem(itemBreak, "break"),
 		tSpace,
 		mkItem(itemContinue, "continue"),
+		tSpace,
+		mkItem(itemExit, "exit"),
 		tRight,
 		tEOF,
 	}},

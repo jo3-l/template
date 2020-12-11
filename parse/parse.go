@@ -379,6 +379,8 @@ func (t *Tree) action() (n Node) {
 		return t.breakControl()
 	case itemContinue:
 		return t.continueControl()
+	case itemExit:
+		return t.exitControl()
 	}
 	t.backup()
 	token := t.peek()
@@ -516,6 +518,13 @@ func (t *Tree) ifControl() Node {
 // Range keyword is past.
 func (t *Tree) rangeControl() Node {
 	return t.newRange(t.parseControl(false, "range"))
+}
+
+// Exit:
+// 	{{exit}}
+// Exit keyword is past.
+func (t *Tree) exitControl() Node {
+	return t.newExit(t.expect(itemRightDelim, "exit").pos)
 }
 
 // Break:
