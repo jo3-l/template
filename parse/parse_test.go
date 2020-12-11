@@ -234,6 +234,8 @@ var parseTests = []parseTest{
 		`{{with .X}}"hello"{{end}}`},
 	{"with with else", "{{with .X}}hello{{else}}goodbye{{end}}", noError,
 		`{{with .X}}"hello"{{else}}"goodbye"{{end}}`},
+	{"with with else if", "{{with .X}}true{{else if .Y}}false{{end}}", noError, `{{with .X}}"true"{{else if .Y}}"false"{{end}}`},
+	{"with else chain", "+{{with .X}}X{{else if .Y}}Y{{else if .Z}}Z{{end}}+", noError, `"+"{{with .X}}"X"{{else}}{{if .Y}}"Y"{{else}}{{if .Z}}"Z"{{end}}{{end}}{{end}}"+"`},
 	{"exit", "hello{{exit}}", noError, `hello{{exit}}`},
 	// Trimming spaces.
 	{"trim left", "x \r\n\t{{- 3}}", noError, `"x"{{3}}`},
