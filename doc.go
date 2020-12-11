@@ -111,6 +111,12 @@ data, defined in detail in the corresponding sections that follow.
 		T0 is executed; otherwise, dot is set to the successive elements
 		of the array, slice, or map and T1 is executed.
 
+	{{break}}
+		Break out of the surrounding range loop.
+
+	{{continue}}
+		Begin the next iteration of the surrounding range loop.
+
 	{{template "name"}}
 		The template with the specified name is executed with nil data.
 
@@ -135,6 +141,15 @@ data, defined in detail in the corresponding sections that follow.
 		If the value of the pipeline is empty, dot is unaffected and T0
 		is executed; otherwise, dot is set to the value of the pipeline
 		and T1 is executed.
+
+	{{with pipeline}} T1 {{else if pipeline}} T0 {{end}}
+		To simplify the appearance of if-else chains, the else action
+		of an if may include another if directly; the effect is exactly
+		the same as writing
+			{{with pipeline}} T1 {{else}}{{if pipeline}} T0 {{end}}{{end}}
+
+	{{exit}}
+		SStop execution of the current template at this point.
 
 Arguments
 
