@@ -149,7 +149,7 @@ data, defined in detail in the corresponding sections that follow.
 			{{with pipeline}} T1 {{else}}{{if pipeline}} T0 {{end}}{{end}}
 
 	{{exit}}
-		SStop execution of the current template at this point.
+		Stop execution of the current template at this point.
 
 Arguments
 
