@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/jonas747/template/parse"
+	"github.com/jo3-l/template/parse"
 )
 
 // common holds the information shared by related templates.

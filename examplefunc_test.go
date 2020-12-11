@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jonas747/template"
+	"github.com/jo3-l/template"
 )
 
 // This example demonstrates a custom function to process template text.

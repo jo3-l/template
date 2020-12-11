@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jonas747/template/parse"
+	"github.com/jo3-l/template/parse"
 )
 
 // maxExecDepth specifies the maximum stack depth of templates within
@@ -391,10 +391,11 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 			break
 		}
 		for i := 0; i < val.Len(); i++ {
-			switch signal := oneIteration(reflect.ValueOf(i), val.Index(i)); signal {
-			case rangeBreak:
+			signal := oneIteration(reflect.ValueOf(i), val.Index(i))
+			if signal == rangeBreak {
 				break
-			case exitTemplate:
+			}
+			if signal == exitTemplate {
 				return exitTemplate
 			}
 		}
@@ -405,10 +406,11 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 			break
 		}
 		for _, key := range sortKeys(val.MapKeys()) {
-			switch signal := oneIteration(key, val.MapIndex(key)); signal {
-			case rangeBreak:
+			signal := oneIteration(key, val.MapIndex(key))
+			if signal == rangeBreak {
 				break
-			case exitTemplate:
+			}
+			if signal == exitTemplate {
 				return exitTemplate
 			}
 		}
@@ -424,10 +426,11 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 			if !ok {
 				break
 			}
-			switch signal := oneIteration(reflect.ValueOf(i), elem); signal {
-			case rangeBreak:
+			signal := oneIteration(reflect.ValueOf(i), elem)
+			if signal == rangeBreak {
 				break
-			case exitTemplate:
+			}
+			if signal == exitTemplate {
 				return exitTemplate
 			}
 		}

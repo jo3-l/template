@@ -8,7 +8,8 @@ import (
 	"log"
 	"os"
 	"strings"
-	"text/template"
+
+	"github.com/jo3-l/template"
 )
 
 func ExampleTemplate() {
