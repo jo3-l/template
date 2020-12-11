@@ -9,8 +9,9 @@ package template
 import (
 	"bytes"
 	"fmt"
-	"github.com/jonas747/template/parse"
 	"testing"
+
+	"github.com/jonas747/template/parse"
 )
 
 const (

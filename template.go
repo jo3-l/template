@@ -5,9 +5,10 @@
 package template
 
 import (
-	"github.com/jonas747/template/parse"
 	"reflect"
 	"sync"
+
+	"github.com/jonas747/template/parse"
 )
 
 // common holds the information shared by related templates.
