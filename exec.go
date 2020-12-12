@@ -496,7 +496,9 @@ func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) controlFlowSign
 			isFirst = false
 		}
 	}
-	panic("unreachable")
+	s.errorf("encountered unreachable code in while action, this should never happen")
+	// Just to placate linter, actually unreachable
+	return signalLoopNone
 }
 
 func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {
