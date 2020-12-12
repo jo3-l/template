@@ -40,6 +40,9 @@ var itemName = map[itemType]string{
 	itemEnd:      "end",
 	itemNil:      "nil",
 	itemRange:    "range",
+	itemBreak:    "break",
+	itemContinue: "continue",
+	itemExit:     "exit",
 	itemTemplate: "template",
 	itemWith:     "with",
 }
