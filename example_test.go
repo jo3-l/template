@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jo3-l/template"
+	"text/template"
 )
 
 func ExampleTemplate() {
