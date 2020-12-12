@@ -65,6 +65,7 @@ const (
 	NodeNumber                     // A numerical constant.
 	NodePipe                       // A pipeline of commands.
 	NodeRange                      // A range action.
+	NodeWhile                      // A while action.
 	NodeString                     // A string constant.
 	NodeTemplate                   // A template invocation action.
 	NodeVariable                   // A $ variable.
@@ -747,6 +748,8 @@ func (b *BranchNode) String() string {
 		name = "if"
 	case NodeRange:
 		name = "range"
+	case NodeWhile:
+		name = "while"
 	case NodeWith:
 		name = "with"
 	default:
@@ -768,6 +771,8 @@ func (b *BranchNode) Copy() Node {
 		return b.tr.newIf(b.Pos, b.Line, b.Pipe, b.List, b.ElseList)
 	case NodeRange:
 		return b.tr.newRange(b.Pos, b.Line, b.Pipe, b.List, b.ElseList)
+	case NodeWhile:
+		return b.tr.newWhile(b.Pos, b.Line, b.Pipe, b.List, b.ElseList)
 	case NodeWith:
 		return b.tr.newWith(b.Pos, b.Line, b.Pipe, b.List, b.ElseList)
 	default:
@@ -799,6 +804,19 @@ func (t *Tree) newRange(pos Pos, line int, pipe *PipeNode, list, elseList *ListN
 
 func (r *RangeNode) Copy() Node {
 	return r.tr.newRange(r.Pos, r.Line, r.Pipe.CopyPipe(), r.List.CopyList(), r.ElseList.CopyList())
+}
+
+// WhileNode represents a {{while}} actiona nd its commands.
+type WhileNode struct {
+	BranchNode
+}
+
+func (t *Tree) newWhile(pos Pos, line int, pipe *PipeNode, list, elseList *ListNode) *WhileNode {
+	return &WhileNode{BranchNode{tr: t, NodeType: NodeRange, Pos: pos, Line: line, Pipe: pipe, List: list, ElseList: elseList}}
+}
+
+func (w *WhileNode) Copy() Node {
+	return w.tr.newWhile(w.Pos, w.Line, w.Pipe.CopyPipe(), w.List.CopyList(), w.ElseList.CopyList())
 }
 
 // ExitNode represents an {{exit}} action.

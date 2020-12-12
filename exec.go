@@ -39,6 +39,7 @@ type state struct {
 	vars       []variable // push-down stack of variable values.
 	depth      int        // the height of the stack of executing templates.
 	rangeDepth int        // nesting level of range loops.
+	whileDepth int        // nesting level of while loops.
 	operations int
 
 	parent *state
@@ -251,10 +252,10 @@ func (t *Template) DefinedTemplates() string {
 type controlFlowSignal int8
 
 const (
-	rangeNone     controlFlowSignal = iota // no action.
-	rangeBreak                             // break out of range.
-	rangeContinue                          // continues next range iteration.
-	exitTemplate                           // stops executing current template.
+	signalLoopNone     controlFlowSignal = iota // no action.
+	signalLoopBreak                             // break out of range.
+	signalLoopContinue                          // continues next range iteration.
+	signalExitTemplate                          // stops executing current template.
 )
 
 // Walk functions step through the major pieces of the template structure,
@@ -273,12 +274,14 @@ func (s *state) walk(dot reflect.Value, node parse.Node) controlFlowSignal {
 		return s.walkIfOrWith(parse.NodeIf, dot, node.Pipe, node.List, node.ElseList)
 	case *parse.ListNode:
 		for _, node := range node.Nodes {
-			if s := s.walk(dot, node); s != rangeNone {
+			if s := s.walk(dot, node); s != signalLoopNone {
 				return s
 			}
 		}
 	case *parse.RangeNode:
 		return s.walkRange(dot, node)
+	case *parse.WhileNode:
+		return s.walkWhile(dot, node)
 	case *parse.TemplateNode:
 		s.walkTemplate(dot, node)
 	case *parse.TextNode:
@@ -288,21 +291,21 @@ func (s *state) walk(dot reflect.Value, node parse.Node) controlFlowSignal {
 	case *parse.WithNode:
 		return s.walkIfOrWith(parse.NodeWith, dot, node.Pipe, node.List, node.ElseList)
 	case *parse.ExitNode:
-		return exitTemplate
+		return signalExitTemplate
 	case *parse.BreakNode:
-		if s.rangeDepth == 0 {
-			s.errorf("invalid break outside of range")
+		if s.rangeDepth == 0 && s.whileDepth == 0 {
+			s.errorf("invalid break outside of loop")
 		}
-		return rangeBreak
+		return signalLoopBreak
 	case *parse.ContinueNode:
-		if s.rangeDepth == 0 {
-			s.errorf("invalid continue outside of range")
+		if s.rangeDepth == 0 && s.whileDepth == 0 {
+			s.errorf("invalid continue outside of loop")
 		}
-		return rangeContinue
+		return signalLoopContinue
 	default:
 		s.errorf("unknown node: %s", node)
 	}
-	return rangeNone
+	return signalLoopNone
 }
 
 // walkIfOrWith walks an 'if' or 'with' node. The two control structures
@@ -323,7 +326,7 @@ func (s *state) walkIfOrWith(typ parse.NodeType, dot reflect.Value, pipe *parse.
 	} else if elseList != nil {
 		return s.walk(dot, elseList)
 	}
-	return rangeNone
+	return signalLoopNone
 }
 
 // IsTrue reports whether the value is 'true', in the sense of not the zero of its type,
@@ -392,30 +395,30 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 		}
 		for i := 0; i < val.Len(); i++ {
 			signal := oneIteration(reflect.ValueOf(i), val.Index(i))
-			if signal == rangeBreak {
+			if signal == signalLoopBreak {
 				break
 			}
-			if signal == exitTemplate {
-				return exitTemplate
+			if signal == signalExitTemplate {
+				return signalExitTemplate
 			}
 		}
 		s.rangeDepth--
-		return rangeNone
+		return signalLoopNone
 	case reflect.Map:
 		if val.Len() == 0 {
 			break
 		}
 		for _, key := range sortKeys(val.MapKeys()) {
 			signal := oneIteration(key, val.MapIndex(key))
-			if signal == rangeBreak {
+			if signal == signalLoopBreak {
 				break
 			}
-			if signal == exitTemplate {
-				return exitTemplate
+			if signal == signalExitTemplate {
+				return signalExitTemplate
 			}
 		}
 		s.rangeDepth--
-		return rangeNone
+		return signalLoopNone
 	case reflect.Chan:
 		if val.IsNil() {
 			break
@@ -427,18 +430,18 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 				break
 			}
 			signal := oneIteration(reflect.ValueOf(i), elem)
-			if signal == rangeBreak {
+			if signal == signalLoopBreak {
 				break
 			}
-			if signal == exitTemplate {
-				return exitTemplate
+			if signal == signalExitTemplate {
+				return signalExitTemplate
 			}
 		}
 		if i == 0 {
 			break
 		}
 		s.rangeDepth--
-		return rangeNone
+		return signalLoopNone
 	case reflect.Invalid:
 		break // An invalid value is likely a nil map, etc. and acts like an empty map.
 	default:
@@ -448,7 +451,53 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 	if r.ElseList != nil {
 		return s.walk(dot, r.ElseList)
 	}
-	return rangeNone
+	return signalLoopNone
+}
+
+func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) controlFlowSignal {
+	s.incrOPs(1)
+	s.at(w)
+	defer s.pop(s.mark())
+	// mark top of stack before any variables in the body are pushed.
+	mark := s.mark()
+	s.whileDepth++
+
+	isFirst := true
+	for {
+		s.incrOPs(1)
+		val, _ := indirect(s.evalPipeline(dot, w.Pipe))
+		truth, ok := isTrue(val)
+		if !ok {
+			s.errorf("while can't use %v", val)
+		}
+
+		if !truth {
+			s.whileDepth--
+			if isFirst && w.ElseList != nil {
+				// If the first value the pipeline evaluated to was falsey, evaluate the contents of the else list.
+				s.walk(dot, w.ElseList)
+			}
+			return signalLoopNone
+		}
+
+		// Set top var to the result of evaluating the pipeline if it is truthy.
+		if len(w.Pipe.Decl) != 0 {
+			s.setTopVar(1, val)
+		}
+		signal := s.walk(dot, w.List)
+		s.pop(mark)
+		if signal == signalLoopBreak {
+			return signalLoopNone
+		}
+		if signal == signalExitTemplate {
+			return signalExitTemplate
+		}
+
+		if isFirst {
+			isFirst = false
+		}
+	}
+	panic("unreachable")
 }
 
 func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {

@@ -542,6 +542,18 @@ var execTests = []execTest{
 	{"range continue", `{{range .SI}}{{continue}}{{.}}{{end}}`, "", tVal, true},
 	{"range continue condition", `{{range .SI}}{{if eq . 3 }}{{continue}}{{end}}{{.}}{{end}}`, "45", tVal, true},
 
+	// While.
+	{"while number", "{{$i := 0}}{{while lt $i 5}}<{{$i}}>{{$i = add $i 1}}{{end}}", "<0><1><2><3><4>", tVal, true},
+	{"while number access dot", "{{$i := 0}}{{while lt $i 5}}<{{.I}}>{{$i = add $i 1}}{{end}}", "<17><17><17><17><17>", tVal, true},
+	{"while declaration 01", "{{$i := 0}}{{while $b := lt $i 5}}{{$b}}{{$i = add $i 1}}{{end}}", "truetruetruetruetrue", tVal, true},
+	{"while falsey value", "{{while .MSIEmpty}}test{{end}}", "", tVal, true},
+	{"while falsey value else", "{{while .MSIEmpty}}test{{else}}falsey{{end}}", "falsey", tVal, true},
+	{"while quick break", "{{while true}}{{break}}1{{end}}", "", tVal, true},
+	{"while break at three", "{{$i := 0}}{{while lt $i 5}}{{if eq $i 3}}{{break}}{{end}}<{{$i}}>{{$i = add $i 1}}{{end}}", "<0><1><2>", tVal, true},
+	{"while range break", "{{$i := 0}}{{while lt $i 5}}<{{$i}}>{{range .SI}}{{break}}{{end}}{{$i = add $i 1}}{{end}}", "<0><1><2><3><4>", tVal, true},
+	{"while continue", "{{$i := 0}}{{while lt $i 5}}{{$i = add $i 1}}{{continue}}<{{$i}}>{{end}}", "", tVal, true},
+	{"while infinite loop", "{{while true}}{{end}}", "", tVal, false},
+
 	// Exit.
 	{"exit top level", `12{{exit}}23`, "12", tVal, true},
 	{"exit in nested template", `{{define "tmpl"}}12{{exit}}34{{end}}{{template "tmpl"}}45`, "1245", tVal, true},
@@ -720,9 +732,9 @@ func testExecute(execTests []execTest, template *Template, t *testing.T) {
 		var tmpl *Template
 		var err error
 		if template == nil {
-			tmpl, err = New(test.name).Funcs(funcs).Parse(test.input)
+			tmpl, err = New(test.name).MaxOps(1_000_000).Funcs(funcs).Parse(test.input)
 		} else {
-			tmpl, err = template.New(test.name).Funcs(funcs).Parse(test.input)
+			tmpl, err = template.New(test.name).MaxOps(1_000_000).Funcs(funcs).Parse(test.input)
 		}
 		if err != nil {
 			t.Errorf("%s: parse error: %s", test.name, err)

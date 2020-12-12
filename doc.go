@@ -111,11 +111,19 @@ data, defined in detail in the corresponding sections that follow.
 		T0 is executed; otherwise, dot is set to the successive elements
 		of the array, slice, or map and T1 is executed.
 
+	{{while pipeline}} T! {{end}}
+		As long as the pipeline evaluates to a non-empty value, T1 will be evaluated,
+		otherwise, nothing will be output.
+
+	{{while pipeline}} T1 {{ else }} T0 {{ end }}
+		As long as the pipeline evaluates to a non-empty value, T1 will be evaluated,
+		otherwise, T0 will be evaluated.
+
 	{{break}}
-		Break out of the surrounding range loop.
+		Break out of the surrounding loop.
 
 	{{continue}}
-		Begin the next iteration of the surrounding range loop.
+		Begin the next iteration of the surrounding loop.
 
 	{{template "name"}}
 		The template with the specified name is executed with nil data.
@@ -266,6 +274,9 @@ successive elements of the iteration. Also, a "range" may declare two
 variables, separated by a comma:
 
 	range $index, $element := pipeline
+
+Similar to a "range" action, if a "while" action initializes a variable,
+the variable is set to the value of the iteration.
 
 in which case $index and $element are set to the successive values of the
 array/slice index or map key and element, respectively. Note that if there is
