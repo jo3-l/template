@@ -38,8 +38,7 @@ type state struct {
 	node       parse.Node // current node, for errors
 	vars       []variable // push-down stack of variable values.
 	depth      int        // the height of the stack of executing templates.
-	rangeDepth int        // nesting level of range loops.
-	whileDepth int        // nesting level of while loops.
+	loopDepth  int        // nesting level of range/while loops.
 	operations int
 
 	parent *state
@@ -293,12 +292,12 @@ func (s *state) walk(dot reflect.Value, node parse.Node) controlFlowSignal {
 	case *parse.ExitNode:
 		return signalExitTemplate
 	case *parse.BreakNode:
-		if s.rangeDepth == 0 && s.whileDepth == 0 {
+		if s.loopDepth == 0 {
 			s.errorf("invalid break outside of loop")
 		}
 		return signalLoopBreak
 	case *parse.ContinueNode:
-		if s.rangeDepth == 0 && s.whileDepth == 0 {
+		if s.loopDepth == 0 {
 			s.errorf("invalid continue outside of loop")
 		}
 		return signalLoopContinue
@@ -372,7 +371,7 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 	val, _ := indirect(s.evalPipeline(dot, r.Pipe))
 	// mark top of stack before any variables in the body are pushed.
 	mark := s.mark()
-	s.rangeDepth++
+	s.loopDepth++
 	oneIteration := func(index, elem reflect.Value) controlFlowSignal {
 		s.incrOPs(1)
 
@@ -402,7 +401,7 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 				return signalExitTemplate
 			}
 		}
-		s.rangeDepth--
+		s.loopDepth--
 		return signalLoopNone
 	case reflect.Map:
 		if val.Len() == 0 {
@@ -417,7 +416,7 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 				return signalExitTemplate
 			}
 		}
-		s.rangeDepth--
+		s.loopDepth--
 		return signalLoopNone
 	case reflect.Chan:
 		if val.IsNil() {
@@ -440,14 +439,14 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 		if i == 0 {
 			break
 		}
-		s.rangeDepth--
+		s.loopDepth--
 		return signalLoopNone
 	case reflect.Invalid:
 		break // An invalid value is likely a nil map, etc. and acts like an empty map.
 	default:
 		s.errorf("range can't iterate over %v", val)
 	}
-	s.rangeDepth--
+	s.loopDepth--
 	if r.ElseList != nil {
 		return s.walk(dot, r.ElseList)
 	}
@@ -460,7 +459,7 @@ func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) controlFlowSign
 	defer s.pop(s.mark())
 	// mark top of stack before any variables in the body are pushed.
 	mark := s.mark()
-	s.whileDepth++
+	s.loopDepth++
 
 	isFirst := true
 	for {
@@ -472,7 +471,7 @@ func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) controlFlowSign
 		}
 
 		if !truth {
-			s.whileDepth--
+			s.loopDepth--
 			if isFirst && w.ElseList != nil {
 				// If the first value the pipeline evaluated to was falsey, evaluate the contents of the else list.
 				s.walk(dot, w.ElseList)

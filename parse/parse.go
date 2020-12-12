@@ -23,14 +23,13 @@ type Tree struct {
 	Root      *ListNode // top-level root of the tree.
 	text      string    // text parsed to create the template (or its parent)
 	// Parsing only; cleared after parse.
-	funcs      []map[string]interface{}
-	lex        *lexer
-	token      [3]item // three-token lookahead for parser.
-	peekCount  int
-	vars       []string // variables defined at the moment.
-	treeSet    map[string]*Tree
-	rangeDepth int // nesting level of range loops.
-	whileDepth int // nesting level of while loops.
+	funcs     []map[string]interface{}
+	lex       *lexer
+	token     [3]item // three-token lookahead for parser.
+	peekCount int
+	vars      []string // variables defined at the moment.
+	treeSet   map[string]*Tree
+	loopDepth int // nesting level of range/while loops.
 }
 
 // Copy returns a copy of the Tree. Any parsing state is discarded.
@@ -221,8 +220,7 @@ func (t *Tree) stopParse() {
 	t.vars = nil
 	t.funcs = nil
 	t.treeSet = nil
-	t.rangeDepth = 0
-	t.whileDepth = 0
+	t.loopDepth = 0
 }
 
 // Parse parses the template definition string to construct a representation of
@@ -476,18 +474,14 @@ func (t *Tree) parseControl(allowElseIf bool, context string) (pos Pos, line int
 	var next Node
 
 	switch context {
-	case "range":
-		t.rangeDepth--
-	case "while":
-		t.whileDepth--
+	case "range", "while":
+		t.loopDepth--
 	}
 	list, next = t.itemList()
 
 	switch context {
-	case "range":
-		t.rangeDepth--
-	case "while":
-		t.whileDepth--
+	case "range", "while":
+		t.loopDepth--
 	}
 
 	switch next.Type() {
@@ -553,7 +547,7 @@ func (t *Tree) exitControl() Node {
 //	{{break}}
 // Break keyword is past.
 func (t *Tree) breakControl() Node {
-	if t.rangeDepth == 0 && t.whileDepth == 0 {
+	if t.loopDepth == 0 {
 		t.errorf("unexpected break outside of loop")
 	}
 	return t.newBreak(t.expect(itemRightDelim, "break").pos)
@@ -563,7 +557,7 @@ func (t *Tree) breakControl() Node {
 //	{{continue}}
 // Continue keyword is past.
 func (t *Tree) continueControl() Node {
-	if t.rangeDepth == 0 && t.whileDepth == 0 {
+	if t.loopDepth == 0 {
 		t.errorf("unexpected continue outside of loop")
 	}
 	return t.newContinue(t.expect(itemRightDelim, "continue").pos)
