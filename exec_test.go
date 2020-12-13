@@ -554,11 +554,12 @@ var execTests = []execTest{
 	{"while continue", "{{$i := 0}}{{while lt $i 5}}{{$i = add $i 1}}{{continue}}<{{$i}}>{{end}}", "", tVal, true},
 	{"while infinite loop", "{{while true}}{{end}}", "", tVal, false},
 
-	// Exit.
-	{"exit top level", `12{{exit}}23`, "12", tVal, true},
-	{"exit in nested template", `{{define "tmpl"}}12{{exit}}34{{end}}{{template "tmpl"}}45`, "1245", tVal, true},
-	{"exit in range", `{{range .SI}}{{exit}}23{{end}}34`, "", tVal, true},
-	{"exit in if", `{{if true}}{{exit}}{{end}}12`, "", tVal, true},
+	// Return.
+	{"return top level", `12{{return}}23`, "12", tVal, true},
+	{"return in nested template", `{{define "tmpl"}}12{{return}}34{{end}}{{template "tmpl"}}45`, "1245", tVal, true},
+	{"return in range", `{{range .SI}}{{return}}23{{end}}34`, "", tVal, true},
+	{"return in if", `{{if true}}{{return}}{{end}}12`, "", tVal, true},
+	{"return with value", `12{{return 34}}45`, "12", tVal, true},
 
 	// Cute examples.
 	{"or as if true", `{{or .SI "slice is empty"}}`, "[3 4 5]", tVal, true},

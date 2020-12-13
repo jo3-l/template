@@ -67,10 +67,10 @@ const (
 	itemDefine   // define keyword
 	itemElse     // else keyword
 	itemEnd      // end keyword
-	itemExit     // exit keyword
 	itemIf       // if keyword
 	itemNil      // the untyped nil constant, easiest to treat as a keyword
 	itemRange    // range keyword
+	itemReturn   // return keyword
 	itemWhile    // while keyword
 	itemTemplate // template keyword
 	itemWith     // with keyword
@@ -84,13 +84,13 @@ var key = map[string]itemType{
 	"define":   itemDefine,
 	"else":     itemElse,
 	"end":      itemEnd,
-	"exit":     itemExit,
 	"if":       itemIf,
 	"range":    itemRange,
 	"while":    itemWhile,
 	"nil":      itemNil,
 	"template": itemTemplate,
 	"with":     itemWith,
+	"return":   itemReturn,
 }
 
 const eof = -1

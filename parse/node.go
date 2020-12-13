@@ -72,7 +72,7 @@ const (
 	NodeWith                       // A with action.
 	NodeBreak                      // A break action.
 	NodeContinue                   // A continue action.
-	NodeExit                       // An exit action.
+	NodeReturn                     // A return action.
 )
 
 // Nodes.
@@ -819,30 +819,35 @@ func (w *WhileNode) Copy() Node {
 	return w.tr.newWhile(w.Pos, w.Line, w.Pipe.CopyPipe(), w.List.CopyList(), w.ElseList.CopyList())
 }
 
-// ExitNode represents an {{exit}} action.
-type ExitNode struct {
+// ReturnNode returns a {{return}} action and its commands.
+
+type ReturnNode struct {
 	NodeType
 	Pos
-	tr *Tree
+	tr   *Tree
+	Pipe *PipeNode // The pipeline to be evaluated.
 }
 
-func (t *Tree) newExit(pos Pos) *ExitNode {
-	return &ExitNode{NodeType: NodeExit, Pos: pos, tr: t}
+func (t *Tree) newReturn(pos Pos, pipe *PipeNode) *ReturnNode {
+	return &ReturnNode{NodeType: NodeReturn, Pos: pos, tr: t, Pipe: pipe}
 }
-func (e *ExitNode) Type() NodeType {
-	return e.NodeType
+func (r *ReturnNode) Type() NodeType {
+	return r.NodeType
 }
-func (e *ExitNode) String() string {
-	return "{{exit}}"
+func (r *ReturnNode) String() string {
+	if r.Pipe != nil {
+		return "{{exit}}"
+	}
+	return fmt.Sprintf("{{exit %s}}", r.Pipe)
 }
-func (e *ExitNode) Copy() Node {
-	return e.tr.newExit(e.Pos)
+func (r *ReturnNode) Copy() Node {
+	return r.tr.newReturn(r.Pos, r.Pipe)
 }
-func (e *ExitNode) Position() Pos {
-	return e.Pos
+func (r *ReturnNode) Position() Pos {
+	return r.Pos
 }
-func (e *ExitNode) tree() *Tree {
-	return e.tr
+func (r *ReturnNode) tree() *Tree {
+	return r.tr
 }
 
 // BreakNode represents a {{break}} action.

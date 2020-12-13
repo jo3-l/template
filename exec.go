@@ -33,13 +33,14 @@ func initMaxExecDepth() int {
 // template so that multiple executions of the same template
 // can execute in parallel.
 type state struct {
-	tmpl       *Template
-	wr         io.Writer
-	node       parse.Node // current node, for errors
-	vars       []variable // push-down stack of variable values.
-	depth      int        // the height of the stack of executing templates.
-	loopDepth  int        // nesting level of range/while loops.
-	operations int
+	tmpl        *Template
+	wr          io.Writer
+	node        parse.Node    // current node, for errors
+	vars        []variable    // push-down stack of variable values.
+	returnValue reflect.Value // value returned from the template.
+	depth       int           // the height of the stack of executing templates.
+	loopDepth   int           // nesting level of range/while loops.
+	operations  int
 
 	parent *state
 }
@@ -254,7 +255,7 @@ const (
 	signalLoopNone     controlFlowSignal = iota // no action.
 	signalLoopBreak                             // break out of range.
 	signalLoopContinue                          // continues next range iteration.
-	signalExitTemplate                          // stops executing current template.
+	signalReturnValue                           // return a value to the caller.
 )
 
 // Walk functions step through the major pieces of the template structure,
@@ -289,8 +290,9 @@ func (s *state) walk(dot reflect.Value, node parse.Node) controlFlowSignal {
 		}
 	case *parse.WithNode:
 		return s.walkIfOrWith(parse.NodeWith, dot, node.Pipe, node.List, node.ElseList)
-	case *parse.ExitNode:
-		return signalExitTemplate
+	case *parse.ReturnNode:
+		s.walkReturn(dot, node.Pipe)
+		return signalReturnValue
 	case *parse.BreakNode:
 		if s.loopDepth == 0 {
 			s.errorf("invalid break outside of loop")
@@ -397,8 +399,8 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 			if signal == signalLoopBreak {
 				break
 			}
-			if signal == signalExitTemplate {
-				return signalExitTemplate
+			if signal == signalReturnValue {
+				return signalReturnValue
 			}
 		}
 		s.loopDepth--
@@ -412,8 +414,8 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 			if signal == signalLoopBreak {
 				break
 			}
-			if signal == signalExitTemplate {
-				return signalExitTemplate
+			if signal == signalReturnValue {
+				return signalReturnValue
 			}
 		}
 		s.loopDepth--
@@ -432,8 +434,8 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 			if signal == signalLoopBreak {
 				break
 			}
-			if signal == signalExitTemplate {
-				return signalExitTemplate
+			if signal == signalReturnValue {
+				return signalReturnValue
 			}
 		}
 		if i == 0 {
@@ -488,8 +490,8 @@ func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) controlFlowSign
 		if signal == signalLoopBreak {
 			return signalLoopNone
 		}
-		if signal == signalExitTemplate {
-			return signalExitTemplate
+		if signal == signalReturnValue {
+			return signalReturnValue
 		}
 
 		if isFirst {
@@ -522,6 +524,10 @@ func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {
 	// No dynamic scoping: template invocations inherit no variables.
 	newState.vars = []variable{{"$", dot}}
 	newState.walk(dot, tmpl.Root)
+}
+
+func (s *state) walkReturn(dot reflect.Value, pipe *parse.PipeNode) {
+	s.returnValue = s.evalPipeline(dot, pipe)
 }
 
 // Eval functions evaluate pipelines, commands, and their elements and extract

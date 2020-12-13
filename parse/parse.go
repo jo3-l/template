@@ -267,6 +267,7 @@ func IsEmptyTree(n Node) bool {
 	case *RangeNode:
 	case *WhileNode:
 	case *TemplateNode:
+	case *ReturnNode:
 	case *TextNode:
 		return len(bytes.TrimSpace(n.Text)) == 0
 	case *WithNode:
@@ -382,8 +383,8 @@ func (t *Tree) action() (n Node) {
 		return t.breakControl()
 	case itemContinue:
 		return t.continueControl()
-	case itemExit:
-		return t.exitControl()
+	case itemReturn:
+		return t.returnControl()
 	}
 	t.backup()
 	token := t.peek()
@@ -536,11 +537,19 @@ func (t *Tree) whileControl() Node {
 	return t.newWhile(t.parseControl(false, "while"))
 }
 
-// Exit:
-// 	{{exit}}
-// Exit keyword is past.
-func (t *Tree) exitControl() Node {
-	return t.newExit(t.expect(itemRightDelim, "exit").pos)
+// Return:
+// 	{{return}}
+//	{{return pipeline}}
+// Return keyword is past.
+func (t *Tree) returnControl() Node {
+	const context = "return clause"
+	token := t.nextNonSpace()
+	var pipe *PipeNode
+	if token.typ != itemRightDelim {
+		t.backup()
+		pipe = t.pipeline(context)
+	}
+	return t.newReturn(token.pos, pipe)
 }
 
 // Break:
