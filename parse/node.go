@@ -806,7 +806,7 @@ func (r *RangeNode) Copy() Node {
 	return r.tr.newRange(r.Pos, r.Line, r.Pipe.CopyPipe(), r.List.CopyList(), r.ElseList.CopyList())
 }
 
-// WhileNode represents a {{while}} actiona nd its commands.
+// WhileNode represents a {{while}} action and its commands.
 type WhileNode struct {
 	BranchNode
 }

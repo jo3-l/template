@@ -396,11 +396,8 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 		}
 		for i := 0; i < val.Len(); i++ {
 			signal := oneIteration(reflect.ValueOf(i), val.Index(i))
-			if signal == signalLoopBreak {
-				break
-			}
-			if signal == signalReturnValue {
-				return signalReturnValue
+			if signal == signalLoopBreak || signal == signalReturnValue {
+				return signal
 			}
 		}
 		s.loopDepth--
@@ -411,11 +408,8 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 		}
 		for _, key := range sortKeys(val.MapKeys()) {
 			signal := oneIteration(key, val.MapIndex(key))
-			if signal == signalLoopBreak {
-				break
-			}
-			if signal == signalReturnValue {
-				return signalReturnValue
+			if signal == signalLoopBreak || signal == signalReturnValue {
+				return signal
 			}
 		}
 		s.loopDepth--
@@ -431,11 +425,8 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSign
 				break
 			}
 			signal := oneIteration(reflect.ValueOf(i), elem)
-			if signal == signalLoopBreak {
-				break
-			}
-			if signal == signalReturnValue {
-				return signalReturnValue
+			if signal == signalLoopBreak || signal == signalReturnValue {
+				return signal
 			}
 		}
 		if i == 0 {
@@ -474,8 +465,8 @@ func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) controlFlowSign
 
 		if !truth {
 			s.loopDepth--
+			// Evaluate the else block if it is defined and this is the first iteration.
 			if isFirst && w.ElseList != nil {
-				// If the first value the pipeline evaluated to was falsey, evaluate the contents of the else list.
 				s.walk(dot, w.ElseList)
 			}
 			return signalLoopNone
@@ -487,20 +478,14 @@ func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) controlFlowSign
 		}
 		signal := s.walk(dot, w.List)
 		s.pop(mark)
-		if signal == signalLoopBreak {
-			return signalLoopNone
-		}
-		if signal == signalReturnValue {
-			return signalReturnValue
+		if signal == signalLoopBreak || signal == signalReturnValue {
+			return signal
 		}
 
 		if isFirst {
 			isFirst = false
 		}
 	}
-	s.errorf("encountered unreachable code in while action, this should never happen")
-	// Just to placate linter, actually unreachable
-	return signalLoopNone
 }
 
 func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {

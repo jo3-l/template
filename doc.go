@@ -156,8 +156,11 @@ data, defined in detail in the corresponding sections that follow.
 		the same as writing
 			{{with pipeline}} T1 {{else}}{{if pipeline}} T0 {{end}}{{end}}
 
-	{{exit}}
-		Stop execution of the current template at this point.
+	{{return}}
+		Stop execution of the current template.
+
+	{{return pipeline}}
+		Stop execution of the current template, returning a value to the caller.
 
 Arguments
 
