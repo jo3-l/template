@@ -9,8 +9,9 @@ package template
 import (
 	"bytes"
 	"fmt"
-	"github.com/jonas747/template/parse"
 	"testing"
+
+	"github.com/jo3-l/template/parse"
 )
 
 const (
@@ -242,7 +243,7 @@ func TestAddParseTree(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Add a new parse tree.
-	tree, err := parse.Parse("cloneText3", cloneText3, "", "", nil, builtins)
+	tree, err := parse.Parse("cloneText3", cloneText3, "", "", nil, builtins())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -359,6 +360,7 @@ func TestEmptyTemplate(t *testing.T) {
 		in   string
 		want string
 	}{
+		{[]string{"x", "y"}, "", "y"},
 		{[]string{""}, "once", ""},
 		{[]string{"", ""}, "twice", ""},
 		{[]string{"{{.}}", "{{.}}"}, "twice", "twice"},

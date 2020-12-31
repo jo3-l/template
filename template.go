@@ -5,9 +5,10 @@
 package template
 
 import (
-	"github.com/jonas747/template/parse"
 	"reflect"
 	"sync"
+
+	"github.com/jo3-l/template/parse"
 )
 
 // common holds the information shared by related templates.
@@ -51,6 +52,10 @@ func (t *Template) Name() string {
 // New allocates a new, undefined template associated with the given one and with the same
 // delimiters. The association, which is transitive, allows one template to
 // invoke another with a {{template}} action.
+//
+// Because associated templates share underlying data, template construction
+// cannot be done safely in parallel. Once the templates are constructed, they
+// can be executed in parallel.
 func (t *Template) New(name string) *Template {
 	t.init()
 	nt := &Template{
@@ -107,20 +112,21 @@ func (t *Template) Clone() (*Template, error) {
 
 // copy returns a shallow copy of t, with common set to the argument.
 func (t *Template) copy(c *common) *Template {
-	nt := New(t.name)
-	nt.Tree = t.Tree
-	nt.common = c
-	nt.leftDelim = t.leftDelim
-	nt.rightDelim = t.rightDelim
-	return nt
+	return &Template{
+		name:       t.name,
+		Tree:       t.Tree,
+		common:     c,
+		leftDelim:  t.leftDelim,
+		rightDelim: t.rightDelim,
+	}
 }
 
-// AddParseTree adds parse tree for template with given name and associates it with t.
-// If the template does not already exist, it will create a new one.
-// If the template does exist, it will be replaced.
+// AddParseTree associates the argument parse tree with the template t, giving
+// it the specified name. If the template has not been defined, this tree becomes
+// its definition. If it has been defined and already has that name, the existing
+// definition is replaced; otherwise a new template is created, defined, and returned.
 func (t *Template) AddParseTree(name string, tree *parse.Tree) (*Template, error) {
 	t.init()
-	// If the name is the name of this template, overwrite this template.
 	nt := t
 	if name != t.name {
 		nt = t.New(name)
@@ -157,6 +163,8 @@ func (t *Template) Delims(left, right string) *Template {
 	return t
 }
 
+// MaxOps sets the maximum operations to allow before stopping execution. The
+// return value is the template, so calls can be chained.
 func (t *Template) MaxOps(ops int) *Template {
 	t.init()
 	t.maxOps = ops
@@ -200,7 +208,7 @@ func (t *Template) Lookup(name string) *Template {
 func (t *Template) Parse(text string) (*Template, error) {
 	t.init()
 	t.muFuncs.RLock()
-	trees, err := parse.Parse(t.name, text, t.leftDelim, t.rightDelim, t.parseFuncs, builtins)
+	trees, err := parse.Parse(t.name, text, t.leftDelim, t.rightDelim, t.parseFuncs, builtins())
 	t.muFuncs.RUnlock()
 	if err != nil {
 		return nil, err

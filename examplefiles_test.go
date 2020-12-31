@@ -5,12 +5,13 @@
 package template_test
 
 import (
-	"github.com/jonas747/template"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/jonas747/template"
 )
 
 // templateFile defines the contents of a template to be stored in a file, for testing.
