@@ -163,8 +163,11 @@ func (t *Template) Delims(left, right string) *Template {
 	return t
 }
 
-// MaxOps sets the maximum operations to allow before stopping execution. The
-// return value is the template, so calls can be chained.
+// MaxOps sets the maximum operations to track before stopping execution. When
+// running with user input, setting this to a reasonable number should be
+// considered a necessity as infinite loops are possible given that maxOps has
+// not been specified. The return value is the template, so calls can be
+// chained.
 func (t *Template) MaxOps(ops int) *Template {
 	t.init()
 	t.maxOps = ops
