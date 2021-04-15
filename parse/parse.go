@@ -30,6 +30,7 @@ type Tree struct {
 	peekCount  int
 	vars       []string // variables defined at the moment.
 	treeSet    map[string]*Tree
+	loopDepth  int // nesting level of range/while loops.
 	actionLine int // line of left delim starting action
 	mode       Mode
 }
@@ -231,6 +232,7 @@ func (t *Tree) stopParse() {
 	t.vars = nil
 	t.funcs = nil
 	t.treeSet = nil
+	t.loopDepth = 0
 }
 
 // Parse parses the template definition string to construct a representation of
@@ -398,6 +400,10 @@ func (t *Tree) action() (n Node) {
 		return t.templateControl()
 	case itemWith:
 		return t.withControl()
+	case itemBreak:
+		return t.breakControl()
+	case itemContinue:
+		return t.continueControl()
 	case itemWhile:
 		return t.whileControl()
 	}
@@ -483,7 +489,13 @@ func (t *Tree) parseControl(allowElseIf bool, context string) (pos Pos, line int
 	defer t.popVars(len(t.vars))
 	pipe = t.pipeline(context, itemRightDelim)
 	var next Node
+	if context == "range" || context == "while" {
+		t.loopDepth++
+	}
 	list, next = t.itemList()
+	if context == "range" || context == "while" {
+		t.loopDepth--
+	}
 	switch next.Type() {
 	case nodeEnd: //done
 	case nodeElse:
@@ -534,6 +546,26 @@ func (t *Tree) rangeControl() Node {
 // While keyword is past.
 func (t *Tree) whileControl() Node {
 	return t.newWhile(t.parseControl(false, "while"))
+}
+
+// Break:
+// 	{{break}}
+// Break keyword is past.
+func (t *Tree) breakControl() Node {
+	if t.loopDepth == 0 {
+		t.errorf("unexpected break outside of loop")
+	}
+	return t.newBreak(t.expect(itemRightDelim, "break").pos)
+}
+
+// Continue
+// 	{{continue}}
+// Continue keyword is past.
+func (t *Tree) continueControl() Node {
+	if t.loopDepth == 0 {
+		t.errorf("unexpected continue outside of range")
+	}
+	return t.newContinue(t.expect(itemRightDelim, "continue").pos)
 }
 
 // With:

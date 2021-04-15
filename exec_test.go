@@ -579,6 +579,10 @@ var execTests = []execTest{
 	{"declare in range", "{{range $x := .PSI}}<{{$foo:=$x}}{{$x}}>{{end}}", "<21><22><23>", tVal, true},
 	{"range count", `{{range $i, $x := count 5}}[{{$i}}]{{$x}}{{end}}`, "[0]a[1]b[2]c[3]d[4]e", tVal, true},
 	{"range nil count", `{{range $i, $x := count 0}}{{else}}empty{{end}}`, "empty", tVal, true},
+	{"range quick break", `{{range .SI}}{{break}}{{.}}{{end}}`, "", tVal, true},
+	{"range break after two", `{{range $i, $x := .SI}}{{if ge $i 2}}{{break}}{{end}}{{.}}{{end}}`, "34", tVal, true},
+	{"range continue", `{{range .SI}}{{continue}}{{.}}{{end}}`, "", tVal, true},
+	{"range continue condition", `{{range .SI}}{{if eq . 3 }}{{continue}}{{end}}{{.}}{{end}}`, "45", tVal, true},
 
 	// While.
 	{"while number", "{{$i := 0}}{{while lt $i 5}}<{{$i}}>{{$i = add $i 1}}{{end}}", "<0><1><2><3><4>", tVal, true},
@@ -588,6 +592,10 @@ var execTests = []execTest{
 	{"while declaration 03", "{{$i := 0}}{{$x := 7}}{{while lt $i 5}}{{$i = add $i 1}}{{$x = 5}}{{end}}{{$x}}", "5", tVal, true},
 	{"while falsey value", "{{while .MSIEmpty}}test{{end}}", "", tVal, true},
 	{"while falsey value else", "{{while .MSIEmpty}}test{{else}}falsey{{end}}", "falsey", tVal, true},
+	{"while quick break", "{{while true}}{{break}}1{{end}}", "", tVal, true},
+	{"while break at three", "{{$i := 0}}{{while lt $i 5}}{{if eq $i 3}}{{break}}{{end}}<{{$i}}>{{$i = add $i 1}}{{end}}", "<0><1><2>", tVal, true}, {"while range break", "{{$i := 0}}{{while lt $i 5}}<{{$i}}>{{range .SI}}{{break}}{{end}}{{$i = add $i 1}}{{end}}", "<0><1><2><3><4>", tVal, true},
+	{"while continue", "{{$i := 0}}{{while lt $i 5}}{{$i = add $i 1}}{{continue}}<{{$i}}>{{end}}", "", tVal, true},
+	{"while infinite loop", "{{while true}}{{end}}", "", tVal, false},
 	// should be stopped by MaxOps
 	{"while infinite loop", "{{while true}}{{end}}", "", tVal, false},
 
