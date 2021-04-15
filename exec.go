@@ -901,18 +901,7 @@ func (s *state) evalExecTemplate(dot reflect.Value, node parse.Node, args []pars
 		s.errorf("exceeded maximum template depth (%v)", maxExecDepth)
 	}
 
-	// unwrap nested reflect.Value
-outer:
-	for data.IsValid() && data.Type() == reflectValueType {
-		inner := data.Interface()
-		switch v := inner.(type) {
-		case reflect.Value:
-			data = v
-		default:
-			data = reflect.ValueOf(v)
-			break outer
-		}
-	}
+	data = unwrapValue(data)
 
 	newState := *s
 	newState.parent = s
@@ -923,6 +912,22 @@ outer:
 	newState.walk(data, tmpl.Root)
 
 	return newState.returnValue
+}
+
+// flattenValue unwraps the value as many times as possible as long as it is
+// still a reflect.Value.
+func unwrapValue(value reflect.Value) reflect.Value {
+	for value.IsValid() && value.Type() == reflectValueType {
+		inner := value.Interface()
+		switch v := inner.(type) {
+		case reflect.Value:
+			value = v
+		default:
+			return reflect.ValueOf(v)
+		}
+	}
+
+	return value
 }
 
 // canBeNil reports whether an untyped nil can be assigned to the type. See reflect.Zero.
