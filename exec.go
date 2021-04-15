@@ -870,10 +870,8 @@ func (s *state) evalExecTemplate(dot reflect.Value, node parse.Node, args []pars
 		if final == missingVal {
 			s.errorf("wrong number of args for execTemplate: want either 1 or 2 got 0")
 		}
-		if final.Type() != stringType {
-			s.errorf("wrong type for value; expected string; got %s", final.Type())
-		}
-		name = final.String()
+
+		name = s.validateType(final, stringType).String()
 	case 1:
 		name = s.evalArg(dot, stringType, args[0]).String()
 		if final != missingVal {
