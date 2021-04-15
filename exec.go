@@ -269,6 +269,8 @@ func (s *state) walk(dot reflect.Value, node parse.Node) {
 		}
 	case *parse.RangeNode:
 		s.walkRange(dot, node)
+	case *parse.WhileNode:
+		s.walkWhile(dot, node)
 	case *parse.TemplateNode:
 		s.walkTemplate(dot, node)
 	case *parse.TextNode:
@@ -403,6 +405,39 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) {
 	}
 	if r.ElseList != nil {
 		s.walk(dot, r.ElseList)
+	}
+}
+
+func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) {
+	s.incrOPs(1)
+
+	s.at(w)
+	defer s.pop(s.mark())
+	// mark top of stack before any variables in the body are pushed.
+	mark := s.mark()
+
+	isFirst := true
+	for {
+		s.incrOPs(5)
+
+		val, _ := indirect(s.evalPipeline(dot, w.Pipe))
+		truth, ok := isTrue(val)
+		if !ok {
+			s.errorf("while can't use %v", val)
+		}
+		if !truth {
+			// If the pipeline evaluated to an empty value first time, then execute the else list.
+			if isFirst && w.ElseList != nil {
+				s.walk(dot, w.ElseList)
+			}
+			break
+		}
+
+		s.walk(dot, w.List)
+		s.pop(mark)
+		if isFirst {
+			isFirst = false
+		}
 	}
 }
 

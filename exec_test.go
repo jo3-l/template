@@ -580,6 +580,17 @@ var execTests = []execTest{
 	{"range count", `{{range $i, $x := count 5}}[{{$i}}]{{$x}}{{end}}`, "[0]a[1]b[2]c[3]d[4]e", tVal, true},
 	{"range nil count", `{{range $i, $x := count 0}}{{else}}empty{{end}}`, "empty", tVal, true},
 
+	// While.
+	{"while number", "{{$i := 0}}{{while lt $i 5}}<{{$i}}>{{$i = add $i 1}}{{end}}", "<0><1><2><3><4>", tVal, true},
+	{"while number access dot", "{{$i := 0}}{{while lt $i 5}}<{{.I}}>{{$i = add $i 1}}{{end}}", "<17><17><17><17><17>", tVal, true},
+	{"while declaration 01", "{{$i := 0}}{{while $b := lt $i 5}}{{$b}}{{$i = add $i 1}}{{end}}", "truetruetruetruetrue", tVal, true},
+	{"while declaration 02", "{{$i := 0}}{{$x := 7}}{{while lt $i 5}}{{$i = add $i 1}}{{$x := 5}}{{end}}{{$x}}", "7", tVal, true},
+	{"while declaration 03", "{{$i := 0}}{{$x := 7}}{{while lt $i 5}}{{$i = add $i 1}}{{$x = 5}}{{end}}{{$x}}", "5", tVal, true},
+	{"while falsey value", "{{while .MSIEmpty}}test{{end}}", "", tVal, true},
+	{"while falsey value else", "{{while .MSIEmpty}}test{{else}}falsey{{end}}", "falsey", tVal, true},
+	// should be stopped by MaxOps
+	{"while infinite loop", "{{while true}}{{end}}", "", tVal, false},
+
 	// Cute examples.
 	{"or as if true", `{{or .SI "slice is empty"}}`, "[3 4 5]", tVal, true},
 	{"or as if false", `{{or .SIEmpty "slice is empty"}}`, "slice is empty", tVal, true},
@@ -779,9 +790,9 @@ func testExecute(execTests []execTest, template *Template, t *testing.T) {
 		var tmpl *Template
 		var err error
 		if template == nil {
-			tmpl, err = New(test.name).Funcs(funcs).Parse(test.input)
+			tmpl, err = New(test.name).Funcs(funcs).MaxOps(1_000_000).Parse(test.input)
 		} else {
-			tmpl, err = template.New(test.name).Funcs(funcs).Parse(test.input)
+			tmpl, err = template.New(test.name).Funcs(funcs).MaxOps(1_000_000).Parse(test.input)
 		}
 		if err != nil {
 			t.Errorf("%s: parse error: %s", test.name, err)

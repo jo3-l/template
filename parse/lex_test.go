@@ -43,6 +43,7 @@ var itemName = map[itemType]string{
 	itemRange:    "range",
 	itemTemplate: "template",
 	itemWith:     "with",
+	itemWhile:    "while",
 }
 
 func (i itemType) String() string {
@@ -204,9 +205,11 @@ var lexTests = []lexTest{
 		tRight,
 		tEOF,
 	}},
-	{"keywords", "{{range if else end with}}", []item{
+	{"keywords", "{{range while if else end with}}", []item{
 		tLeft,
 		mkItem(itemRange, "range"),
+		tSpace,
+		mkItem(itemWhile, "while"),
 		tSpace,
 		mkItem(itemIf, "if"),
 		tSpace,
