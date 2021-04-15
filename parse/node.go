@@ -66,6 +66,7 @@ const (
 	NodeNumber                     // A numerical constant.
 	NodePipe                       // A pipeline of commands.
 	NodeRange                      // A range action.
+	NodeReturn                     // A return action.
 	NodeWhile                      // A while action.
 	NodeString                     // A string constant.
 	NodeTemplate                   // A template invocation action.
@@ -1021,6 +1022,40 @@ func (t *Tree) newWith(pos Pos, line int, pipe *PipeNode, list, elseList *ListNo
 
 func (w *WithNode) Copy() Node {
 	return w.tr.newWith(w.Pos, w.Line, w.Pipe.CopyPipe(), w.List.CopyList(), w.ElseList.CopyList())
+}
+
+type ReturnNode struct {
+	NodeType
+	Pos
+	tr   *Tree
+	Pipe *PipeNode // The command to evaluate as return value for the template.
+}
+
+func (t *Tree) newReturn(pos Pos, pipe *PipeNode) *ReturnNode {
+	return &ReturnNode{tr: t, NodeType: NodeReturn, Pos: pos, Pipe: pipe}
+}
+
+func (r *ReturnNode) String() string {
+	var sb strings.Builder
+	r.writeTo(&sb)
+	return sb.String()
+}
+
+func (r *ReturnNode) writeTo(sb *strings.Builder) {
+	sb.WriteString("{{return ")
+	if r.Pipe != nil {
+		sb.WriteByte(' ')
+		r.Pipe.writeTo(sb)
+	}
+	sb.WriteString("}}")
+}
+
+func (r *ReturnNode) tree() *Tree {
+	return r.tr
+}
+
+func (r *ReturnNode) Copy() Node {
+	return r.tr.newReturn(r.Pos, r.Pipe.CopyPipe())
 }
 
 // TemplateNode represents a {{template}} action.

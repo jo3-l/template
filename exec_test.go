@@ -537,6 +537,13 @@ var execTests = []execTest{
 	{"len of nothing", "{{len .Empty0}}", "", tVal, false},
 	{"len of an interface field", "{{len .Empty3}}", "2", tVal, true},
 
+	// ExecTemplate.
+	{"no return value", `{{define "f"}}hi{{end}}{{execTemplate "f"}}`, "hi<no value>", tVal, true},
+	{"return value", `{{define "f"}}{{return 1}}{{end}}{{execTemplate "f"}}`, "1", tVal, true},
+	{"use return value", `{{define "f"}}{{return 1}}{{end}}{{add (execTemplate "f") 1}}`, "2", tVal, true},
+	{"pass data", `{{define "add1"}}{{return add . 1}}{{end}}{{execTemplate "add1" 1}}`, "2", tVal, true},
+	{"pass data template", `{{define "add1"}}{{add . 1}}{{end}}{{template "add1" 1}}`, "2", tVal, true},
+
 	// With.
 	{"with true", "{{with true}}{{.}}{{end}}", "true", tVal, true},
 	{"with false", "{{with false}}{{.}}{{else}}FALSE{{end}}", "FALSE", tVal, true},
@@ -601,6 +608,13 @@ var execTests = []execTest{
 	{"while infinite loop", "{{while true}}{{end}}", "", tVal, false},
 	// should be stopped by MaxOps
 	{"while infinite loop", "{{while true}}{{end}}", "", tVal, false},
+
+	// Return.
+	{"return top level", `12{{return}}23`, "12", tVal, true},
+	{"return in nested template", `{{define "tmpl"}}12{{return}}34{{end}}{{template "tmpl"}}45`, "1245", tVal, true},
+	{"return in range", `{{range .SI}}{{return}}23{{end}}34`, "", tVal, true},
+	{"return in if", `{{if true}}{{return}}{{end}}12`, "", tVal, true},
+	{"return with value", `12{{return 34}}45`, "12", tVal, true},
 
 	// Cute examples.
 	{"or as if true", `{{or .SI "slice is empty"}}`, "[3 4 5]", tVal, true},

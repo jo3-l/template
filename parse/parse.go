@@ -406,6 +406,8 @@ func (t *Tree) action() (n Node) {
 		return t.continueControl()
 	case itemWhile:
 		return t.whileControl()
+	case itemReturn:
+		return t.returnControl()
 	}
 	t.backup()
 	token := t.peek()
@@ -640,6 +642,20 @@ func (t *Tree) templateControl() Node {
 		pipe = t.pipeline(context, itemRightDelim)
 	}
 	return t.newTemplate(token.pos, token.line, name, pipe)
+}
+
+// Return:
+// 	{{return pipeline}}
+// Return keyword is past.
+func (t *Tree) returnControl() Node {
+	const context = "return clause"
+	token := t.nextNonSpace()
+	var pipe *PipeNode
+	if token.typ != itemRightDelim {
+		t.backup()
+		pipe = t.pipeline(context, itemRightDelim)
+	}
+	return t.newReturn(token.pos, pipe)
 }
 
 func (t *Tree) parseTemplateName(token item, context string) (name string) {
