@@ -541,8 +541,13 @@ var execTests = []execTest{
 	{"no return value", `{{define "f"}}hi{{end}}{{execTemplate "f"}}`, "hi<no value>", tVal, true},
 	{"return value", `{{define "f"}}{{return 1}}{{end}}{{execTemplate "f"}}`, "1", tVal, true},
 	{"use return value", `{{define "f"}}{{return 1}}{{end}}{{add (execTemplate "f") 1}}`, "2", tVal, true},
-	{"pass data", `{{define "add1"}}{{return add . 1}}{{end}}{{execTemplate "add1" 1}}`, "2", tVal, true},
-	{"pass data template", `{{define "add1"}}{{add . 1}}{{end}}{{template "add1" 1}}`, "2", tVal, true},
+	{"pass data and return back", `{{define "add1"}}{{return add . 1}}{{end}}{{execTemplate "add1" 1}}`, "2", tVal, true},
+	{"pass and use data", `{{define "sayMessage"}}text/template said: {{.}}{{end}}{{$s := execTemplate "sayMessage" "hello world"}}`, "text/template said: hello world", tVal, true},
+	{"pass name using pipeline", `{{define "hh"}}hi{{end}}{{$s := "hh" | execTemplate}}`, "hi", tVal, true},
+	{"pass data using pipeline", `{{define "vv"}}{{.}}{{end}}{{$s := 1 | execTemplate "vv"}}`, "1", tVal, true},
+	{"no args passed", `{{define "xx"}}{{end}}{{execTemplate}}`, "", tVal, false},
+	{"three args passed", `{{define "xx"}}{{end}}{{execTemplate 1 2 3}}`, "", tVal, false},
+	{"two args + pipeline passed", `{{define "xx"}}{{end}}{{1 | execTemplate 2 3}}`, "", tVal, false},
 
 	// With.
 	{"with true", "{{with true}}{{.}}{{end}}", "true", tVal, true},
