@@ -119,6 +119,14 @@ data, defined in detail in the corresponding sections that follow.
 		Execute T1 while the value of the pipeline is not empty. If the initial
 		value of the pipeline was empty, evaluate T0. Dot is unaffected.
 
+	{{break}}
+		The innermost {{range pipeline}} or {{while pipeline}} loop is ended early,
+		stopping the current iteration and bypassing all remaining iterations.
+
+	{{continue}}
+		The current iteration of the innermost {{range pipeline}} or {{while pipeline}}
+		loop is stopped, and the loop starts the next iteration.
+
 	{{template "name"}}
 		The template with the specified name is executed with nil data.
 

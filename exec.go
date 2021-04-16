@@ -247,9 +247,18 @@ func (t *Template) DefinedTemplates() string {
 	return s
 }
 
+type controlFlowSignal uint8
+
+// A set of signals that mark a disruption in the normal control flow of the program.
+const (
+	controlFlowNone controlFlowSignal = iota
+	controlFlowBreak
+	controlFlowContinue
+)
+
 // Walk functions step through the major pieces of the template structure,
 // generating output as they go.
-func (s *state) walk(dot reflect.Value, node parse.Node) {
+func (s *state) walk(dot reflect.Value, node parse.Node) controlFlowSignal {
 	s.at(node)
 	switch node := node.(type) {
 	case *parse.ActionNode:
@@ -260,15 +269,17 @@ func (s *state) walk(dot reflect.Value, node parse.Node) {
 			s.printValue(node, val)
 		}
 	case *parse.IfNode:
-		s.walkIfOrWith(parse.NodeIf, dot, node.Pipe, node.List, node.ElseList)
+		return s.walkIfOrWith(parse.NodeIf, dot, node.Pipe, node.List, node.ElseList)
 	case *parse.ListNode:
 		for _, node := range node.Nodes {
-			s.walk(dot, node)
+			if signal := s.walk(dot, node); signal != controlFlowNone {
+				return signal
+			}
 		}
 	case *parse.RangeNode:
-		s.walkRange(dot, node)
+		return s.walkRange(dot, node)
 	case *parse.WhileNode:
-		s.walkWhile(dot, node)
+		return s.walkWhile(dot, node)
 	case *parse.TemplateNode:
 		s.walkTemplate(dot, node)
 	case *parse.TextNode:
@@ -276,15 +287,21 @@ func (s *state) walk(dot reflect.Value, node parse.Node) {
 			s.writeError(err)
 		}
 	case *parse.WithNode:
-		s.walkIfOrWith(parse.NodeWith, dot, node.Pipe, node.List, node.ElseList)
+		return s.walkIfOrWith(parse.NodeWith, dot, node.Pipe, node.List, node.ElseList)
+	case *parse.BreakNode:
+		return controlFlowBreak
+	case *parse.ContinueNode:
+		return controlFlowContinue
 	default:
 		s.errorf("unknown node: %s", node)
 	}
+
+	return controlFlowNone
 }
 
 // walkIfOrWith walks an 'if' or 'with' node. The two control structures
 // are identical in behavior except that 'with' sets dot.
-func (s *state) walkIfOrWith(typ parse.NodeType, dot reflect.Value, pipe *parse.PipeNode, list, elseList *parse.ListNode) {
+func (s *state) walkIfOrWith(typ parse.NodeType, dot reflect.Value, pipe *parse.PipeNode, list, elseList *parse.ListNode) controlFlowSignal {
 	defer s.pop(s.mark())
 	val := s.evalPipeline(dot, pipe)
 	truth, ok := isTrue(indirectInterface(val))
@@ -293,13 +310,15 @@ func (s *state) walkIfOrWith(typ parse.NodeType, dot reflect.Value, pipe *parse.
 	}
 	if truth {
 		if typ == parse.NodeWith {
-			s.walk(val, list)
+			return s.walk(val, list)
 		} else {
-			s.walk(dot, list)
+			return s.walk(dot, list)
 		}
 	} else if elseList != nil {
-		s.walk(dot, elseList)
+		return s.walk(dot, elseList)
 	}
+
+	return controlFlowNone
 }
 
 // IsTrue reports whether the value is 'true', in the sense of not the zero of its type,
@@ -337,15 +356,16 @@ func isTrue(val reflect.Value) (truth, ok bool) {
 	return truth, true
 }
 
-func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) {
+func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) controlFlowSignal {
 	s.incrOPs(1)
 
 	s.at(r)
+
 	defer s.pop(s.mark())
 	val, _ := indirect(s.evalPipeline(dot, r.Pipe))
 	// mark top of stack before any variables in the body are pushed.
 	mark := s.mark()
-	oneIteration := func(index, elem reflect.Value) {
+	oneIteration := func(index, elem reflect.Value) controlFlowSignal {
 		s.incrOPs(1)
 
 		// Set top var (lexically the second if there are two) to the element.
@@ -356,8 +376,10 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) {
 		if len(r.Pipe.Decl) > 1 {
 			s.setTopVar(2, index)
 		}
-		s.walk(elem, r.List)
+
+		signal := s.walk(elem, r.List)
 		s.pop(mark)
+		return signal
 	}
 	switch val.Kind() {
 	case reflect.Array, reflect.Slice:
@@ -365,17 +387,21 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) {
 			break
 		}
 		for i := 0; i < val.Len(); i++ {
-			oneIteration(reflect.ValueOf(i), val.Index(i))
+			if signal := oneIteration(reflect.ValueOf(i), val.Index(i)); signal == controlFlowBreak {
+				return controlFlowNone
+			}
 		}
-		return
+		return controlFlowNone
 	case reflect.Map:
 		if val.Len() == 0 {
 			break
 		}
 		for _, key := range sortKeys(val.MapKeys()) {
-			oneIteration(key, val.MapIndex(key))
+			if signal := oneIteration(key, val.MapIndex(key)); signal == controlFlowBreak {
+				return controlFlowNone
+			}
 		}
-		return
+		return controlFlowNone
 	case reflect.Chan:
 		if val.IsNil() {
 			break
@@ -386,23 +412,26 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) {
 			if !ok {
 				break
 			}
-			oneIteration(reflect.ValueOf(i), elem)
+			if signal := oneIteration(reflect.ValueOf(i), elem); signal == controlFlowBreak {
+				return controlFlowNone
+			}
 		}
 		if i == 0 {
 			break
 		}
-		return
+		return controlFlowNone
 	case reflect.Invalid:
 		break // An invalid value is likely a nil map, etc. and acts like an empty map.
 	default:
 		s.errorf("range can't iterate over %v", val)
 	}
 	if r.ElseList != nil {
-		s.walk(dot, r.ElseList)
+		return s.walk(dot, r.ElseList)
 	}
+	return controlFlowNone
 }
 
-func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) {
+func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) controlFlowSignal {
 	s.incrOPs(1)
 
 	s.at(w)
@@ -423,13 +452,17 @@ func (s *state) walkWhile(dot reflect.Value, w *parse.WhileNode) {
 			break
 		}
 
-		s.walk(dot, w.List)
+		signal := s.walk(dot, w.List)
 		s.pop(mark)
+		if signal == controlFlowBreak {
+			return controlFlowNone
+		}
 	}
 
 	if i == 0 && w.ElseList != nil {
-		s.walk(dot, w.ElseList)
+		return s.walk(dot, w.ElseList)
 	}
+	return controlFlowNone
 }
 
 func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {
