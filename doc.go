@@ -119,6 +119,12 @@ data, defined in detail in the corresponding sections that follow.
 		Execute T1 while the value of the pipeline is not empty. If the initial
 		value of the pipeline was empty, evaluate T0. Dot is unaffected.
 
+	{{break}}
+		Break out of the surrounding range or while loop.
+
+	{{continue}}
+		Begin the next iteration of the surrounding range or while loop.
+
 	{{template "name"}}
 		The template with the specified name is executed with nil data.
 

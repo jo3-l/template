@@ -230,6 +230,12 @@ var parseTests = []parseTest{
 		`{{range $x := .SI}}{{.}}{{end}}`},
 	{"range 2 vars", "{{range $x, $y := .SI}}{{.}}{{end}}", noError,
 		`{{range $x, $y := .SI}}{{.}}{{end}}`},
+	{"range []int with break", "{{range .SI}}{{break}}{{.}}{{end}}", noError,
+		`{{range .SI}}{{break}}{{.}}{{end}}`},
+	{"range []int with break in else", "{{range .SI}}{{range .SI}}{{.}}{{else}}{{break}}{{end}}{{end}}", noError,
+		`{{range .SI}}{{range .SI}}{{.}}{{else}}{{break}}{{end}}{{end}}`},
+	{"range []int with continue", "{{range .SI}}{{continue}}{{.}}{{end}}", noError,
+		`{{range .SI}}{{continue}}{{.}}{{end}}`},
 	{"simple while", "{{while .X}}hello{{end}}", noError,
 		`{{while .X}}"hello"{{end}}`},
 	{"chained field while", "{{while .X.Y.Z}}hello{{end}}", noError,
@@ -244,6 +250,12 @@ var parseTests = []parseTest{
 		`{{while .B}}{{.}}{{end}}`},
 	{"while 1 var", "{{while $x := .I}}hello{{end}}", noError,
 		`{{while $x := .I}}"hello"{{end}}`},
+	{"while 1 var with break", "{{while $i := .I}}{{break}}{{.}}{{end}}", noError,
+		`{{while $i := .I}}{{break}}{{.}}{{end}}`},
+	{"while 1 var with break in else", "{{while $x := .I}}{{while $y := .I}}{{.}}{{else}}{{break}}{{end}}{{end}}", noError,
+		`{{while $x := .I}}{{while $y := .I}}{{.}}{{else}}{{break}}{{end}}{{end}}`},
+	{"while 1 var with continue", "{{while $i := .I}}{{continue}}{{.}}{{end}}", noError,
+		`{{while $i := .I}}{{continue}}{{.}}{{end}}`},
 	{"constants", "{{range .SI 1 -3.2i true false 'a' nil}}{{end}}", noError,
 		`{{range .SI 1 -3.2i true false 'a' nil}}{{end}}`},
 	{"template", "{{template `x`}}", noError,
@@ -314,6 +326,15 @@ var parseTests = []parseTest{
 	{"empty pipeline", `{{printf "%d" ( ) }}`, hasError, ""},
 	// Missing pipeline in block
 	{"block definition", `{{block "foo"}}hello{{end}}`, hasError, ""},
+	// Invalid loop control
+	{"break outside of loop", `{{break}}`, hasError, ""},
+	{"break in range else, outside of range", `{{range .}}{{.}}{{else}}{{break}{{end}}`, hasError, ""},
+	{"break in while else, outside of while", `{{while $i := .I}}{{.}}{{else}}{{break}}{{end}}`, hasError, ""},
+	{"continue outside of loop", `{{continue}}`, hasError, ""},
+	{"continue in range else, outside of range", `{{range .}}{{.}}{{else}}{{continue}}{{end}}`, hasError, ""},
+	{"continue in while else, outside of while", `{{while true}}{{.}}{{else}}{{continue}}{{end}}`, hasError, ""},
+	{"additional break data", `{{range .}}{{break label}}{{end}}`, hasError, ""},
+	{"additional continue data", `{{range .}}{{continue label}}{{end}}`, hasError, ""},
 }
 
 var builtins = map[string]interface{}{
