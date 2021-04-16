@@ -62,6 +62,8 @@ const (
 	itemKeyword  // used only to delimit the keywords
 	itemBlock    // block keyword
 	itemCatch    // catch keyword
+	itemBreak    // break keyword
+	itemContinue // continue keyword
 	itemDot      // the cursor, spelled '.'
 	itemDefine   // define keyword
 	itemElse     // else keyword
@@ -79,6 +81,8 @@ var key = map[string]itemType{
 	".":        itemDot,
 	"block":    itemBlock,
 	"catch":    itemCatch,
+	"break":    itemBreak,
+	"continue": itemContinue,
 	"define":   itemDefine,
 	"else":     itemElse,
 	"end":      itemEnd,

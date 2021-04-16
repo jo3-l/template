@@ -123,6 +123,14 @@ data, defined in detail in the corresponding sections that follow.
 		If executing T1 resulted in an error being returned from a function call,
 		T0 is executed with the dot set to the error.
 
+	{{break}}
+		The innermost {{range pipeline}} or {{while pipeline}} loop is ended early,
+		stopping the current iteration and bypassing all remaining iterations.
+
+	{{continue}}
+		The current iteration of the innermost {{range pipeline}} or {{while pipeline}}
+		loop is stopped, and the loop starts the next iteration.
+
 	{{template "name"}}
 		The template with the specified name is executed with nil data.
 

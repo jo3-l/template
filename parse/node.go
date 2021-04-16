@@ -52,9 +52,11 @@ const (
 	NodeText       NodeType = iota // Plain text.
 	NodeAction                     // A non-control action such as a field evaluation.
 	NodeBool                       // A boolean constant.
+	NodeBreak                      // A break action.
 	NodeChain                      // A sequence of field accesses.
 	NodeCommand                    // An element of a pipeline.
 	nodeCatch                      // A catch action. Not added to tree.
+	NodeContinue                   // A continue action.
 	NodeDot                        // The cursor, dot.
 	nodeElse                       // An else action. Not added to tree.
 	nodeEnd                        // An end action. Not added to tree.
@@ -829,6 +831,52 @@ func (t *Tree) newWhile(pos Pos, line int, pipe *PipeNode, list, elseList *ListN
 
 func (w *WhileNode) Copy() Node {
 	return w.tr.newWhile(w.Pos, w.Line, w.Pipe.CopyPipe(), w.List.CopyList(), w.ElseList.CopyList())
+}
+
+// BreakNode represents a {{break}} action.
+type BreakNode struct {
+	NodeType
+	Pos
+	tr *Tree
+}
+
+func (t *Tree) newBreak(pos Pos) *BreakNode {
+	return &BreakNode{NodeType: NodeBreak, Pos: pos, tr: t}
+}
+
+func (b *BreakNode) String() string {
+	return "{{break}}"
+}
+
+func (b *BreakNode) Copy() Node {
+	return b.tr.newBreak(b.Pos)
+}
+
+func (b *BreakNode) tree() *Tree {
+	return b.tr
+}
+
+// ContinueNode represents a {{continue}} action.
+type ContinueNode struct {
+	NodeType
+	Pos
+	tr *Tree
+}
+
+func (t *Tree) newContinue(pos Pos) *ContinueNode {
+	return &ContinueNode{NodeType: NodeContinue, Pos: pos, tr: t}
+}
+
+func (c *ContinueNode) String() string {
+	return "{{continue}}"
+}
+
+func (c *ContinueNode) Copy() Node {
+	return c.tr.newContinue(c.Pos)
+}
+
+func (c *ContinueNode) tree() *Tree {
+	return c.tr
 }
 
 // CatchNode represents a {{catch}} action. Does not appear in the final tree.
