@@ -268,6 +268,7 @@ func IsEmptyTree(n Node) bool {
 		return len(bytes.TrimSpace(n.Text)) == 0
 	case *BreakNode:
 	case *ContinueNode:
+	case *ReturnNode:
 	case *WithNode:
 	default:
 		panic("unknown node: " + n.String())
@@ -375,6 +376,8 @@ func (t *Tree) action() (n Node) {
 		return t.ifControl()
 	case itemRange:
 		return t.rangeControl()
+	case itemReturn:
+		return t.returnControl()
 	case itemTemplate:
 		return t.templateControl()
 	case itemWith:
@@ -523,6 +526,20 @@ func (t *Tree) ifControl() Node {
 // Range keyword is past.
 func (t *Tree) rangeControl() Node {
 	return t.newRange(t.parseControl(false, "range"))
+}
+
+// Return:
+// 	{{return pipeline}}
+// Return keyword is past.
+func (t *Tree) returnControl() Node {
+	const context = "return clause"
+	token := t.nextNonSpace()
+	var pipe *PipeNode
+	if token.typ != itemRightDelim {
+		t.backup()
+		pipe = t.pipeline(context)
+	}
+	return t.newReturn(token.pos, pipe)
 }
 
 // With:
