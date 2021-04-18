@@ -132,6 +132,10 @@ data, defined in detail in the corresponding sections that follow.
 		Stop execution of the current template and return the result of evaluating
 		the pipeline to the caller.
 
+	{{try}} T1 {{catch}} T0 {{end}}
+		If executing T1 resulted in an error being returned from a function call,
+		T0 is executed with the dot set to the error.
+
 	{{template "name"}}
 		The template with the specified name is executed with nil data.
 

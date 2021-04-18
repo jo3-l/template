@@ -40,6 +40,7 @@ type state struct {
 	returnValue reflect.Value // value returned from the template.
 	depth       int           // the height of the stack of executing templates.
 	loopDepth   int           // nesting level of range/while loops.
+	tryDepth    int           // depth of try actions.
 	operations  int
 
 	parent *state
@@ -125,6 +126,12 @@ type ExecError struct {
 
 func (e ExecError) Error() string {
 	return e.Err.Error()
+}
+
+// FuncCallError is the custom error type returned when execution of a list in a
+// try action resulted in an error being returned from a function call.
+type FuncCallError struct {
+	Err error
 }
 
 // errorf records an ExecError and terminates processing.
@@ -270,6 +277,8 @@ func (s *state) walk(dot reflect.Value, node parse.Node) controlFlowControl {
 		if len(node.Pipe.Decl) == 0 {
 			s.printValue(node, val)
 		}
+	case *parse.TryNode:
+		s.walkTry(dot, node.List, node.CatchList)
 	case *parse.IfNode:
 		return s.walkIfOrWith(parse.NodeIf, dot, node.Pipe, node.List, node.ElseList)
 	case *parse.ListNode:
@@ -307,6 +316,24 @@ func (s *state) walk(dot reflect.Value, node parse.Node) controlFlowControl {
 		s.errorf("unknown node: %s", node)
 	}
 	return controlFlowNone
+}
+
+func (s *state) walkTry(dot reflect.Value, list, catchList *parse.ListNode) {
+	defer func() {
+		s.pop(s.mark())
+		s.tryDepth--
+		if r := recover(); r != nil {
+			switch err := r.(type) {
+			case FuncCallError:
+				s.walk(reflect.ValueOf(err.Err), catchList)
+			default:
+				panic(err)
+			}
+		}
+	}()
+
+	s.tryDepth++
+	s.walk(dot, list)
 }
 
 // walkIfOrWith walks an 'if' or 'with' node. The two control structures
@@ -834,12 +861,17 @@ func (s *state) evalCall(dot, fun reflect.Value, node parse.Node, name string, a
 		}
 		argv[i] = s.validateType(final, t)
 	}
-	v, err := safeCall(fun, argv)
+	v, err, didPanic := safeCall(fun, argv)
 	// If we have an error that is not nil, stop execution and return that
 	// error to the caller.
 	if err != nil {
-		s.at(node)
-		s.errorf("error calling %s: %v", name, err)
+		// If the call panicked instead of returning a normal error, or if we are not in a try action,
+		// stop execution and report the error.
+		if didPanic || s.tryDepth == 0 {
+			s.at(node)
+			s.errorf("error calling %s: %v", name, err)
+		}
+		panic(FuncCallError{err})
 	}
 	if v.Type() == reflectValueType {
 		v = v.Interface().(reflect.Value)

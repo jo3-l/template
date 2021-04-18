@@ -55,6 +55,7 @@ const (
 	NodeBreak                      // A break action.
 	NodeChain                      // A sequence of field accesses.
 	NodeCommand                    // An element of a pipeline.
+	nodeCatch                      // A catch action. Not added to tree.
 	NodeContinue                   // A continue action.
 	NodeDot                        // The cursor, dot.
 	nodeElse                       // An else action. Not added to tree.
@@ -69,6 +70,7 @@ const (
 	NodeRange                      // A range action.
 	NodeReturn                     // A return action.
 	NodeString                     // A string constant.
+	NodeTry                        // A try action.
 	NodeTemplate                   // A template invocation action.
 	NodeVariable                   // A $ variable.
 	NodeWith                       // A with action.
@@ -903,6 +905,62 @@ func (r *ReturnNode) tree() *Tree {
 
 func (r *ReturnNode) Copy() Node {
 	return r.tr.newReturn(r.Pos, r.Pipe.CopyPipe())
+}
+
+func (t *Tree) newCatch(pos Pos) *catchNode {
+	return &catchNode{tr: t, NodeType: nodeCatch, Pos: pos}
+}
+
+// CatchNode represents a {{catch}} action. Does not appear in the final tree.
+type catchNode struct {
+	NodeType
+	Pos
+	tr *Tree
+}
+
+func (c *catchNode) Type() NodeType {
+	return nodeCatch
+}
+
+func (c *catchNode) String() string {
+	return "{{catch}}"
+}
+
+func (c *catchNode) tree() *Tree {
+	return c.tr
+}
+
+func (c *catchNode) Copy() Node {
+	return c.tr.newCatch(c.Pos)
+}
+
+// TryNode represents a {{try}} action and its commands.
+type TryNode struct {
+	NodeType
+	Pos
+	tr        *Tree
+	List      *ListNode // what to attempt to execute.
+	CatchList *ListNode // what to execute if execution resulted in an error.
+}
+
+func (t *Tree) newTry(pos Pos, list, catchList *ListNode) *TryNode {
+	return &TryNode{NodeType: NodeTry, Pos: pos, tr: t, List: list, CatchList: catchList}
+}
+
+func (t *TryNode) Type() NodeType {
+	return NodeTry
+}
+
+func (t *TryNode) String() string {
+	return fmt.Sprintf("{{try}}%s{{catch}}%s{{end}}", t.List, t.CatchList)
+}
+
+func (t *TryNode) tree() *Tree {
+	return t.tr
+}
+
+func (t *TryNode) Copy() Node {
+	return t.tr.newTry(t.Pos, t.List.CopyList(), t.CatchList.CopyList())
 }
 
 // TemplateNode represents a {{template}} action.
