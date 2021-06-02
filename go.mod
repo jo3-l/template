@@ -1,3 +1,3 @@
-module github.com/jonas747/template
+module github.com/jo3-l/template
 
 go 1.13
