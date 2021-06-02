@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jo3-l/template"
+	"github.com/jo3-l/template/v2"
 )
 
 // templateFile defines the contents of a template to be stored in a file, for testing.
