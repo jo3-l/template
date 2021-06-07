@@ -42,6 +42,7 @@ var itemName = map[itemType]string{
 	itemEnd:      "end",
 	itemNil:      "nil",
 	itemRange:    "range",
+	itemReturn:   "return",
 	itemTemplate: "template",
 	itemWith:     "with",
 	itemWhile:    "while",
@@ -205,7 +206,7 @@ var lexTests = []lexTest{
 		tRight,
 		tEOF,
 	}},
-	{"keywords", "{{range if else end with break continue while}}", []item{
+	{"keywords", "{{range if else end with break continue while return}}", []item{
 		tLeft,
 		mkItem(itemRange, "range"),
 		tSpace,
@@ -222,6 +223,8 @@ var lexTests = []lexTest{
 		mkItem(itemContinue, "continue"),
 		tSpace,
 		mkItem(itemWhile, "while"),
+		tSpace,
+		mkItem(itemReturn, "return"),
 		tRight,
 		tEOF,
 	}},
