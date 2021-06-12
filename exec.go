@@ -779,6 +779,25 @@ func (s *state) evalCall(dot, fun reflect.Value, node parse.Node, name string, a
 		s.errorf("can't call method/function %q with %d results", name, typ.NumOut())
 	}
 
+	// Special cases for built-in functions.
+	switch fun {
+	case builtinExecTemplate:
+		return s.callExecTemplate(dot, node, args, final)
+	case builtinAnd, builtinOr:
+		var v reflect.Value
+		for _, arg := range args {
+			v = s.evalArg(dot, reflectValueType, arg).Interface().(reflect.Value)
+			if truth(v) == (fun == builtinOr) {
+				break
+			}
+		}
+
+		if !v.IsValid() && final != missingVal {
+			v = final
+		}
+		return v
+	}
+
 	// Special case for builtin execTemplate.
 	if fun == builtinExecTemplate {
 		return s.callExecTemplate(dot, node, args, final)

@@ -30,7 +30,11 @@ import (
 // type can return interface{} or reflect.Value.
 type FuncMap map[string]interface{}
 
-var builtinExecTemplate = reflect.ValueOf(execTemplate)
+var (
+	builtinExecTemplate = reflect.ValueOf(execTemplate)
+	builtinAnd          = reflect.ValueOf(and)
+	builtinOr           = reflect.ValueOf(or)
+)
 
 // builtins returns the FuncMap.
 // It is not a global variable so the linker can dead code eliminate
@@ -337,31 +341,13 @@ func truth(arg reflect.Value) bool {
 // and computes the Boolean AND of its arguments, returning
 // the first false argument it encounters, or the last argument.
 func and(arg0 reflect.Value, args ...reflect.Value) reflect.Value {
-	if !truth(arg0) {
-		return arg0
-	}
-	for i := range args {
-		arg0 = args[i]
-		if !truth(arg0) {
-			break
-		}
-	}
-	return arg0
+	panic("unreachable") // handled as a special case in evalCall
 }
 
 // or computes the Boolean OR of its arguments, returning
 // the first true argument it encounters, or the last argument.
 func or(arg0 reflect.Value, args ...reflect.Value) reflect.Value {
-	if truth(arg0) {
-		return arg0
-	}
-	for i := range args {
-		arg0 = args[i]
-		if truth(arg0) {
-			break
-		}
-	}
-	return arg0
+	panic("unreachable") // handled as a special case in evalCall.
 }
 
 // not returns the Boolean negation of its argument.
