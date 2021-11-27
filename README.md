@@ -22,7 +22,7 @@ Originally this was just meant to hold some feature branches to contribute upstr
   {{ with $c1 }}
   	c1 truthy; set to dot
   {{ else if $c2 }}
-    c2 truthy
+  	c2 truthy
   {{ else }}
   	neither c1 nor c2 truthy
   {{ end }}
