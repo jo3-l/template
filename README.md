@@ -1,4 +1,4 @@
-# `gopkg.in/jo3-l/template.v3/v3`
+# `gopkg.in/jo3-l/template.v3`
 
 Fork of `github.com/botlabs-gg/template`.
 Originally this was just meant to hold some feature branches to contribute upstream, but it doesn't seem likely that there is interest in accepting them anytime soon. Thus this branch was created so those self-hosting YAGPDB and interested in the new template features can switch easily.
