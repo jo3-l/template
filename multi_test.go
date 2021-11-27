@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/jonas747/template/parse"
+	"github.com/jo3-l/template/v3/parse"
 )
 
 const (
