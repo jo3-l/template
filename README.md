@@ -59,7 +59,7 @@ Originally this was just meant to hold some feature branches to contribute upstr
   ```
   {{/* `return` can be used at the top-level, in which case it stops the execution of the template */}}
   {{ if not .CmdArgs }} {{ return sendMessage nil "no args" }} {{ end }}
-  {{ index .CmdArg 0 }}
+  {{ index .CmdArgs 0 }}
   {{/* not executed if .CmdArgs is empty, so no possibility for index out of bounds */}}
   ```
 
