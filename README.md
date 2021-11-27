@@ -40,6 +40,18 @@ Originally this was just meant to hold some feature branches to contribute upstr
   {{ end }}
   ```
 
+- **`while` loop action:** Does what you think it does.
+
+  _Example:_
+
+  ```
+  {{ $i := 0 }}
+  {{ while lt $i 10 }}
+  	{{ $i }}
+  	{{ $i = add $i 1 }}
+  {{ end }}
+  ```
+
 - **`return` action and `execTemplate` built-in:** Better support for using associated templates as procedures in templates.
 
   _Example 1:_
