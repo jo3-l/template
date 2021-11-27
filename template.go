@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/jo3-l/template/v3/parse"
+	"gopkg.in/jo3-l/template.v3/parse"
 )
 
 // common holds the information shared by related templates.

@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jo3-l/template/v3"
+	"gopkg.in/jo3-l/template.v3"
 )
 
 // This example demonstrates a custom function to process template text.

@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jo3-l/template/v3/parse"
+	"gopkg.in/jo3-l/template.v3/parse"
 )
 
 // maxExecDepth specifies the maximum stack depth of templates within

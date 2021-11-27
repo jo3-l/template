@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/jo3-l/template/v3/parse"
+	"gopkg.in/jo3-l/template.v3/parse"
 )
 
 const (
