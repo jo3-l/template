@@ -1,7 +1,10 @@
 # `gopkg.in/jo3-l/template.v3`
 
-Fork of `github.com/botlabs-gg/template`.
-Originally this was just meant to hold some feature branches to contribute upstream, but it doesn't seem likely that there is interest in accepting them anytime soon. Thus this branch was created so those self-hosting YAGPDB and interested in the new template features can switch easily.
+Fork of [botlabs-gg/template](https://github.com/botlabs-gg/template), which is itself a fork of the Go standard `text/template` library.
+
+Originally this was just meant to hold some feature branches to contribute upstream, but it doesn't seem likely that there is interest in accepting them anytime soon. Thus this branch was created so those self-hosting YAGPDB and interested in the new template features can switch easily if they wish. (This package should be a drop-in replacement for `botlabs-gg/template`.)
+
+[See this commit](https://github.com/jo3-l/yagpdb/commit/5deb3adf7e6bcea01bd70b3959c1d860d1303c0d) for an example of what needs to change in your code.
 
 ## Additional features
 
